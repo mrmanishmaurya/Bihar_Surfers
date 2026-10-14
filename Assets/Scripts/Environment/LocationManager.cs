@@ -4,9 +4,15 @@ using UnityEngine;
 namespace BiharSurfers.Environment
 {
     /// <summary>
-    /// Master location progression manager handling transitions across 10 Bihar locations:
-    /// Patna Junction, Ara, Buxar, Sasaram Junction, Chhapra, Gaya, Muzaffarpur, Darbhanga, Madhubani, Bhagalpur.
-    /// Monitors player distance run and triggers location transitions.
+    /// Master location progression manager handling transitions across all 38 official districts of Bihar:
+    /// Patna, Nalanda, Gaya, Nawada, Aurangabad, Jehanabad, Arwal, Rohtas, Kaimur, Buxar,
+    /// Bhojpur (Ara), Saran (Chhapra), Siwan, Gopalganj, Vaishali (Hajipur), Muzaffarpur, Sheohar, Sitamarhi,
+    /// East Champaran (Motihari), West Champaran (Bettiah), Darbhanga, Madhubani, Samastipur, Begusarai,
+    /// Munger, Lakhisarai, Sheikhpura, Jamui, Khagaria, Bhagalpur, Banka, Saharsa,
+    /// Supaul, Madhepura, Purnia, Kishanganj, Araria, and Katihar.
+    ///
+    /// Tracks distance milestones (1,000 meters per district), enables district selection,
+    /// and triggers visual environmental transitions.
     /// </summary>
     public class LocationManager : MonoBehaviour
     {
@@ -15,9 +21,12 @@ namespace BiharSurfers.Environment
         [Header("Location Data Registry")]
         public List<Data.LocationData> locationList = new List<Data.LocationData>();
         public int currentLocationIndex = 0;
+        public int startingDistrictIndex = 0;
 
         [Header("Progression Distance Interval")]
-        public float defaultIntervalMeters = 800f; // Transition every 800 meters
+        public float distancePerDistrictMeters = 1000f;
+
+        public System.Action<Data.LocationData> OnLocationChanged;
 
         private void Awake()
         {
@@ -28,152 +37,75 @@ namespace BiharSurfers.Environment
             }
             Instance = this;
 
-            InitializeDefaultLocations();
+            InitializeAll38Districts();
         }
 
-        private void InitializeDefaultLocations()
+        private void InitializeAll38Districts()
         {
             if (locationList.Count > 0) return;
 
-            // 1. Patna Junction (PNBE)
-            var loc1 = ScriptableObject.CreateInstance<Data.LocationData>();
-            loc1.locationId = 1;
-            loc1.districtName = "Patna";
-            loc1.stationName = "Patna Junction";
-            loc1.stationCode = "PNBE";
-            loc1.hindiName = "पटना जंक्शन";
-            loc1.englishName = "PATNA JUNCTION";
-            loc1.unlockDistance = 0f;
-            loc1.environmentTheme = "UrbanRailway";
-            loc1.fogColor = new Color(0.85f, 0.75f, 0.65f); // Warm sunrise fog
-            loc1.stationSignText = "PATNA JUNCTION - PNBE";
-            locationList.Add(loc1);
+            var districtDefs = new (string district, string station, string code, string hindi, string theme, Color col, Color fog, string desc)[]
+            {
+                ("Patna", "Patna Junction", "PNBE", "पटना जंक्शन", "UrbanRailway", new Color(0.95f, 0.48f, 0.12f), new Color(0.85f, 0.78f, 0.70f), "Capital city junction with bustling platforms, grand colonial architecture and Ganga riverfront views."),
+                ("Nalanda", "Nalanda Station", "NLD", "नालंदा स्टेशन", "HistoricalFort", new Color(0.82f, 0.35f, 0.15f), new Color(0.80f, 0.70f, 0.60f), "Ancient seat of world learning with terracotta brick ruins, monasteries, and stupa architecture."),
+                ("Gaya", "Gaya Junction", "GAYA", "गया जंक्शन", "SpiritualTemple", new Color(0.92f, 0.70f, 0.20f), new Color(0.75f, 0.75f, 0.85f), "Spiritual sanctuary surrounded by hills, Vishnupad temple, and Bodh Gaya pilgrimage paths."),
+                ("Nawada", "Nawada Station", "NWD", "नवादा स्टेशन", "ForestTrail", new Color(0.35f, 0.65f, 0.30f), new Color(0.70f, 0.85f, 0.75f), "Picturesque landscape near Kakolat waterfalls, lush valley greenery, and stone hills."),
+                ("Aurangabad", "Anugrah Narayan Road", "AUBR", "अनुग्रह नारायण रोड", "HistoricalFort", new Color(0.78f, 0.40f, 0.22f), new Color(0.85f, 0.80f, 0.70f), "Historic Sun Temple city of Deo with ancient rock inscriptions and Grand Trunk road crossings."),
+                ("Jehanabad", "Jehanabad Station", "JHD", "जहानाबाद स्टेशन", "TownStation", new Color(0.60f, 0.55f, 0.45f), new Color(0.78f, 0.78f, 0.80f), "Fertile heartland station connecting agricultural plains and ancient Barabar rock-cut caves."),
+                ("Arwal", "Arwal City Crossing", "ARWL", "अरवल स्टेशन", "RuralCrossing", new Color(0.45f, 0.60f, 0.35f), new Color(0.80f, 0.85f, 0.75f), "Son river basin crossing featuring scenic canal routes, bamboo groves, and open mustard fields."),
+                ("Rohtas", "Sasaram Junction", "SSM", "सासाराम जंक्शन", "HistoricalFort", new Color(0.75f, 0.35f, 0.25f), new Color(0.82f, 0.75f, 0.65f), "Home of Sher Shah Suri's magnificent red sandstone mausoleum surrounded by a grand lotus lake."),
+                ("Kaimur", "Bhabua Road Station", "BBU", "भभुआ रोड स्टेशन", "ForestTrail", new Color(0.30f, 0.58f, 0.35f), new Color(0.68f, 0.80f, 0.70f), "Scenic Kaimur wildlife hills, Telhar waterfall forests, and ancient Mundeshwari stone temple trails."),
+                ("Buxar", "Buxar Station", "BXR", "बक्सर स्टेशन", "GangaRiver", new Color(0.25f, 0.65f, 0.85f), new Color(0.70f, 0.82f, 0.90f), "Historic Ganga riverfront battlegrounds with tranquil ghats, palm groves, and riverside breeze."),
+                ("Bhojpur", "Ara Junction", "ARA", "आरा जंक्शन", "TownStation", new Color(0.88f, 0.45f, 0.18f), new Color(0.85f, 0.78f, 0.70f), "Heart of Bhojpuri culture, historic Veer Kunwar Singh memorial grounds, and buzzing rail junctions."),
+                ("Saran", "Chhapra Junction", "CPR", "छपरा जंक्शन", "RailMarket", new Color(0.85f, 0.30f, 0.25f), new Color(0.80f, 0.75f, 0.75f), "Grand multi-platform railway hub situated along the meeting point of Ganga and Ghaghara rivers."),
+                ("Siwan", "Siwan Junction", "SV", "सीवान जंक्शन", "TownStation", new Color(0.55f, 0.62f, 0.72f), new Color(0.75f, 0.80f, 0.85f), "Birthplace of Dr. Rajendra Prasad with vibrant brass craft markets and rail interchanges."),
+                ("Gopalganj", "Thawe Junction", "THE", "थावे जंक्शन", "SpiritualTemple", new Color(0.88f, 0.55f, 0.15f), new Color(0.85f, 0.80f, 0.70f), "Spiritual gateway renowned for the sacred Thawe Bhavani temple nestled among sacred forest groves."),
+                ("Vaishali", "Hajipur Junction", "HJP", "हाजीपुर जंक्शन", "RuralCrossing", new Color(0.90f, 0.72f, 0.20f), new Color(0.88f, 0.85f, 0.75f), "World's earliest republic, famous Hajipur banana orchards, and Ashokan Lion Pillar monuments."),
+                ("Muzaffarpur", "Muzaffarpur Junction", "MFP", "मुजफ्फरपुर जंक्शन", "LitchiBazaar", new Color(0.92f, 0.25f, 0.35f), new Color(0.88f, 0.75f, 0.78f), "The Litchi Kingdom with vibrant fruit bazaars, sweet aroma, and heavy rail traffic."),
+                ("Sheohar", "Sheohar Crossing", "SHR", "शिवहर स्टेशन", "RuralCrossing", new Color(0.40f, 0.65f, 0.38f), new Color(0.78f, 0.84f, 0.76f), "Lush Bagmati river floodplains with pastoral village lanes, bamboo bridges, and mango orchards."),
+                ("Sitamarhi", "Sitamarhi Junction", "SMI", "सीतामढ़ी जंक्शन", "SpiritualTemple", new Color(0.95f, 0.60f, 0.25f), new Color(0.85f, 0.80f, 0.75f), "Sacred birthplace of Goddess Sita featuring Punaura Dham and Janaki temple sanctums."),
+                ("East Champaran", "Bapudham Motihari", "BMKI", "बापूधाम मोतिहारी", "HistoricalFort", new Color(0.85f, 0.60f, 0.35f), new Color(0.82f, 0.80f, 0.78f), "Mahatma Gandhi's historic Champaran Satyagraha memorial city and the grand Kesaria Stupa."),
+                ("West Champaran", "Bettiah Station", "BTH", "बेतिया स्टेशन", "ForestTrail", new Color(0.28f, 0.55f, 0.32f), new Color(0.65f, 0.78f, 0.70f), "Valmiki National Park wilderness trails, tiger corridors, and Gandak river irrigation canals."),
+                ("Darbhanga", "Darbhanga Junction", "DBG", "दरभंगा जंक्शन", "MithilaPalace", new Color(0.78f, 0.28f, 0.75f), new Color(0.80f, 0.75f, 0.85f), "Cultural capital of Mithila with ornate Raj Darbhanga royal palace gates, lakes, and music heritage."),
+                ("Madhubani", "Madhubani Station", "MBI", "मधुबनी स्टेशन", "MadhubaniArt", new Color(0.95f, 0.30f, 0.40f), new Color(0.88f, 0.80f, 0.82f), "World-famous Mithila folk paintings adorning station walls, railway coaches, and village pavilions."),
+                ("Samastipur", "Samastipur Junction", "SPJ", "समस्तीपुर जंक्शन", "UrbanRailway", new Color(0.40f, 0.50f, 0.75f), new Color(0.75f, 0.80f, 0.88f), "Major Indian Railways divisional headquarters with extensive locomotive yards and railway bridges."),
+                ("Begusarai", "Barauni Junction", "BJU", "बरौनी जंक्शन", "UrbanRailway", new Color(0.65f, 0.45f, 0.35f), new Color(0.78f, 0.75f, 0.72f), "Industrial hub of Bihar with thermal power plant cooling towers, refineries, and Kanwar lake wetland."),
+                ("Munger", "Jamalpur Junction", "JMP", "जमालपुर जंक्शन", "HistoricalFort", new Color(0.55f, 0.48f, 0.40f), new Color(0.76f, 0.74f, 0.72f), "Asia's oldest railway locomotive workshop founded in 1862, historic Munger fort, and Yoga university."),
+                ("Lakhisarai", "Kiul Junction", "KIUL", "किऊल जंक्शन", "RailMarket", new Color(0.75f, 0.55f, 0.30f), new Color(0.82f, 0.78f, 0.74f), "Strategic railway interchange where Grand Chord and Main Line rail arteries converge."),
+                ("Sheikhpura", "Sheikhpura Station", "SHK", "शेखपुरा स्टेशन", "RuralCrossing", new Color(0.68f, 0.58f, 0.42f), new Color(0.80f, 0.78f, 0.72f), "Quaint pastoral region surrounded by stone quarries, onion farms, and peaceful hillock backdrops."),
+                ("Jamui", "Jamui Station", "JMU", "जमुई स्टेशन", "ForestTrail", new Color(0.35f, 0.52f, 0.38f), new Color(0.72f, 0.80f, 0.74f), "Jain pilgrimage sites at Lachhuar, scenic Nagi Dam bird sanctuary, and rolling forest hills."),
+                ("Khagaria", "Khagaria Junction", "KGG", "खगड़िया जंक्शन", "GangaRiver", new Color(0.30f, 0.65f, 0.78f), new Color(0.74f, 0.82f, 0.88f), "The Land of Seven Rivers where Koshi, Bagmati, and Ganga rivers interlace across vast green floodplains."),
+                ("Bhagalpur", "Bhagalpur Junction", "BGP", "भागलपुर जंक्शन", "SilkCity", new Color(0.88f, 0.40f, 0.60f), new Color(0.85f, 0.75f, 0.80f), "The Silk City of India, world-renowned for Tussar silk weaving, Vikramshila dolphin sanctuary, and university."),
+                ("Banka", "Banka Junction", "BAKA", "बांका जंक्शन", "HistoricalFort", new Color(0.72f, 0.45f, 0.30f), new Color(0.80f, 0.76f, 0.70f), "Sacred Mandar Hill where mythological Samudra Manthan took place, surrounded by Chhath lake."),
+                ("Saharsa", "Saharsa Junction", "SHC", "सहरसा जंक्शन", "TownStation", new Color(0.82f, 0.60f, 0.28f), new Color(0.84f, 0.80f, 0.74f), "Koshi division trade hub famous for Matsyagandha temple lake and Makhana wetland harvests."),
+                ("Supaul", "Supaul Station", "SOU", "सुपौल स्टेशन", "RuralCrossing", new Color(0.42f, 0.68f, 0.45f), new Color(0.76f, 0.85f, 0.78f), "Koshi river delta with scenic bamboo farmhouses, water lily ponds, and fresh countryside air."),
+                ("Madhepura", "Dauram Madhepura", "DMH", "मधेपुरा स्टेशन", "UrbanRailway", new Color(0.45f, 0.55f, 0.70f), new Color(0.78f, 0.80f, 0.85f), "Home of India's state-of-the-art high horsepower electric locomotive manufacturing facility."),
+                ("Purnia", "Purnea Junction", "PRNA", "पूर्णिया जंक्शन", "TownStation", new Color(0.50f, 0.70f, 0.45f), new Color(0.75f, 0.84f, 0.78f), "Prosperous eastern trading center surrounded by maize granaries, jute fields, and broad gauge railways."),
+                ("Kishanganj", "Kishanganj Station", "KNE", "किशनगंज स्टेशन", "ForestTrail", new Color(0.25f, 0.62f, 0.40f), new Color(0.70f, 0.85f, 0.75f), "Bihar's exclusive tea garden district with gentle rolling hills, misty mornings, and eastern border gateways."),
+                ("Araria", "Araria Court", "ARQ", "अररिया कोर्ट स्टेशन", "RuralCrossing", new Color(0.60f, 0.65f, 0.40f), new Color(0.80f, 0.82f, 0.76f), "Literary heartland of Phanishwar Nath 'Renu', peaceful border plains, and rich cultural traditions."),
+                ("Katihar", "Katihar Junction", "KIR", "कटिहार जंक्शन", "RailMarket", new Color(0.85f, 0.42f, 0.20f), new Color(0.82f, 0.76f, 0.70f), "Vast 8-line railway junction connecting Northeast India with Bihar, bustling jute mills, and wetland sanctuaries.")
+            };
 
-            // 2. Ara Junction (ARA)
-            var loc2 = ScriptableObject.CreateInstance<Data.LocationData>();
-            loc2.locationId = 2;
-            loc2.districtName = "Ara";
-            loc2.stationName = "Ara Junction";
-            loc2.stationCode = "ARA";
-            loc2.hindiName = "आरा जंक्शन";
-            loc2.englishName = "ARA JUNCTION";
-            loc2.unlockDistance = 500f;
-            loc2.environmentTheme = "TownStation";
-            loc2.fogColor = new Color(0.75f, 0.85f, 0.7f); // Town green tint
-            loc2.stationSignText = "ARA JUNCTION - ARA";
-            locationList.Add(loc2);
+            for (int i = 0; i < districtDefs.Length; i++)
+            {
+                var d = districtDefs[i];
+                var loc = ScriptableObject.CreateInstance<Data.LocationData>();
+                loc.locationId = i + 1;
+                loc.districtName = d.district;
+                loc.stationName = d.station;
+                loc.stationCode = d.code;
+                loc.hindiName = d.hindi;
+                loc.englishName = d.station.ToUpper();
+                loc.unlockDistance = i * distancePerDistrictMeters;
+                loc.environmentTheme = d.theme;
+                loc.primaryThemeColor = d.col;
+                loc.fogColor = d.fog;
+                loc.ambientLightColor = Color.Lerp(Color.white, d.col, 0.25f);
+                loc.stationSignText = $"{d.station.ToUpper()} ({d.code})";
+                loc.locationDescription = d.desc;
 
-            // 3. Buxar (BXR)
-            var loc3 = ScriptableObject.CreateInstance<Data.LocationData>();
-            loc3.locationId = 3;
-            loc3.districtName = "Buxar";
-            loc3.stationName = "Buxar";
-            loc3.stationCode = "BXR";
-            loc3.hindiName = "बक्सर";
-            loc3.englishName = "BUXAR";
-            loc3.unlockDistance = 1000f;
-            loc3.environmentTheme = "GangaRiver";
-            loc3.fogColor = new Color(0.6f, 0.8f, 0.95f); // River Ganga blue fog
-            loc3.stationSignText = "BUXAR - BXR";
-            locationList.Add(loc3);
-
-            // 4. Sasaram Junction (SSM)
-            var loc4 = ScriptableObject.CreateInstance<Data.LocationData>();
-            loc4.locationId = 4;
-            loc4.districtName = "Sasaram";
-            loc4.stationName = "Sasaram Junction";
-            loc4.stationCode = "SSM";
-            loc4.hindiName = "सासाराम जंक्शन";
-            loc4.englishName = "SASARAM JUNCTION";
-            loc4.unlockDistance = 1500f;
-            loc4.environmentTheme = "HistoricalFort";
-            loc4.fogColor = new Color(0.7f, 0.7f, 0.6f); // Historic stone fog
-            loc4.stationSignText = "SASARAM JUNCTION - SSM";
-            locationList.Add(loc4);
-
-            // 5. Chhapra Junction (CPR)
-            var loc5 = ScriptableObject.CreateInstance<Data.LocationData>();
-            loc5.locationId = 5;
-            loc5.districtName = "Chhapra";
-            loc5.stationName = "Chhapra Junction";
-            loc5.stationCode = "CPR";
-            loc5.hindiName = "छपरा जंक्शन";
-            loc5.englishName = "CHHAPRA JUNCTION";
-            loc5.unlockDistance = 2000f;
-            loc5.environmentTheme = "RailMarket";
-            loc5.fogColor = new Color(0.9f, 0.8f, 0.7f); // Market amber fog
-            loc5.stationSignText = "CHHAPRA JUNCTION - CPR";
-            locationList.Add(loc5);
-
-            // 6. Muzaffarpur Junction (MFP)
-            var loc6 = ScriptableObject.CreateInstance<Data.LocationData>();
-            loc6.locationId = 6;
-            loc6.districtName = "Muzaffarpur";
-            loc6.stationName = "Muzaffarpur Junction";
-            loc6.stationCode = "MFP";
-            loc6.hindiName = "मुजफ्फरपुर जंक्शन";
-            loc6.englishName = "MUZAFFARPUR JUNCTION";
-            loc6.unlockDistance = 2500f;
-            loc6.environmentTheme = "LitchiBazaar";
-            loc6.fogColor = new Color(0.95f, 0.75f, 0.8f);
-            loc6.stationSignText = "MUZAFFARPUR JUNCTION - MFP";
-            locationList.Add(loc6);
-
-            // 7. Darbhanga Junction (DBG)
-            var loc7 = ScriptableObject.CreateInstance<Data.LocationData>();
-            loc7.locationId = 7;
-            loc7.districtName = "Darbhanga";
-            loc7.stationName = "Darbhanga Junction";
-            loc7.stationCode = "DBG";
-            loc7.hindiName = "दरभंगा जंक्शन";
-            loc7.englishName = "DARBHANGA JUNCTION";
-            loc7.unlockDistance = 3000f;
-            loc7.environmentTheme = "MithilaPalace";
-            loc7.fogColor = new Color(0.8f, 0.85f, 0.95f);
-            loc7.stationSignText = "DARBHANGA JUNCTION - DBG";
-            locationList.Add(loc7);
-
-            // 8. Samastipur Junction (SPJ)
-            var loc8 = ScriptableObject.CreateInstance<Data.LocationData>();
-            loc8.locationId = 8;
-            loc8.districtName = "Samastipur";
-            loc8.stationName = "Samastipur Junction";
-            loc8.stationCode = "SPJ";
-            loc8.hindiName = "समस्तीपुर जंक्शन";
-            loc8.englishName = "SAMASTIPUR JUNCTION";
-            loc8.unlockDistance = 3500f;
-            loc8.environmentTheme = "CentralHub";
-            loc8.fogColor = new Color(0.85f, 0.85f, 0.75f);
-            loc8.stationSignText = "SAMASTIPUR JUNCTION - SPJ";
-            locationList.Add(loc8);
-
-            // 9. Gaya Junction (GAYA)
-            var loc9 = ScriptableObject.CreateInstance<Data.LocationData>();
-            loc9.locationId = 9;
-            loc9.districtName = "Gaya";
-            loc9.stationName = "Gaya Junction";
-            loc9.stationCode = "GAYA";
-            loc9.hindiName = "गया जंक्शन";
-            loc9.englishName = "GAYA JUNCTION";
-            loc9.unlockDistance = 4000f;
-            loc9.environmentTheme = "SpiritualTemple";
-            loc9.fogColor = new Color(0.85f, 0.7f, 0.9f);
-            loc9.stationSignText = "GAYA JUNCTION - GAYA";
-            locationList.Add(loc9);
-
-            // 10. Purnea Junction (PRNA)
-            var loc10 = ScriptableObject.CreateInstance<Data.LocationData>();
-            loc10.locationId = 10;
-            loc10.districtName = "Purnea";
-            loc10.stationName = "Purnea Junction";
-            loc10.stationCode = "PRNA";
-            loc10.hindiName = "पूर्णिया जंक्शन";
-            loc10.englishName = "PURNEA JUNCTION";
-            loc10.unlockDistance = 4500f;
-            loc10.environmentTheme = "GreenValleys";
-            loc10.fogColor = new Color(0.75f, 0.9f, 0.8f);
-            loc10.stationSignText = "PURNEA JUNCTION - PRNA";
-            locationList.Add(loc10);
+                locationList.Add(loc);
+            }
         }
 
         private void Update()
@@ -183,7 +115,6 @@ namespace BiharSurfers.Environment
 
             float currentDistance = Core.ScoreManager.Instance.currentDistance;
 
-            // Check if player has crossed threshold for next location
             if (currentLocationIndex + 1 < locationList.Count)
             {
                 var nextLoc = locationList[currentLocationIndex + 1];
@@ -191,6 +122,11 @@ namespace BiharSurfers.Environment
                 {
                     currentLocationIndex++;
                     ApplyLocationTransition(nextLoc);
+
+                    if (Core.SaveManager.Instance != null)
+                    {
+                        Core.SaveManager.Instance.UnlockDistrict(currentLocationIndex);
+                    }
                 }
             }
         }
@@ -201,33 +137,53 @@ namespace BiharSurfers.Environment
             return locationList[Mathf.Clamp(currentLocationIndex, 0, locationList.Count - 1)];
         }
 
+        public void SelectStartingDistrict(int index)
+        {
+            if (index < 0 || index >= locationList.Count) return;
+
+            startingDistrictIndex = index;
+            currentLocationIndex = index;
+
+            var loc = locationList[index];
+            ApplyLocationTransition(loc);
+        }
+
         public void ApplyLocationTransition(Data.LocationData location)
         {
             if (location == null) return;
 
-            // Trigger Transition Banner & Lighting
             LocationTransition.Instance?.TriggerLocationTransition(location);
 
-            // Save current district index
+            RenderSettings.fog = true;
+            RenderSettings.fogColor = location.fogColor;
+            RenderSettings.fogDensity = 0.015f;
+
             if (Core.SaveManager.Instance != null)
             {
                 Core.SaveManager.Instance.data.currentDistrictIndex = currentLocationIndex;
                 Core.SaveManager.Instance.SaveGame();
             }
 
-            // Check location achievement
-            if (currentLocationIndex >= 4)
+            OnLocationChanged?.Invoke(location);
+
+            Core.AudioManager.Instance?.PlaySFX("DistrictUnlocked");
+
+            if (currentLocationIndex >= 10)
             {
-                Core.AchievementManager.Instance?.Unlock("ach_explorer");
+                Core.AchievementManager.Instance?.Unlock("ach_district_10");
+            }
+            if (currentLocationIndex >= 37)
+            {
+                Core.AchievementManager.Instance?.Unlock("ach_bihar_complete");
             }
         }
 
         public void ResetLocationProgression()
         {
-            currentLocationIndex = 0;
+            currentLocationIndex = startingDistrictIndex;
             if (locationList.Count > 0)
             {
-                ApplyLocationTransition(locationList[0]);
+                ApplyLocationTransition(locationList[currentLocationIndex]);
             }
         }
     }

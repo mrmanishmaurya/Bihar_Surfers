@@ -1,4 +1,5 @@
 using System.IO;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BiharSurfers.Core
@@ -9,15 +10,19 @@ namespace BiharSurfers.Core
         public int coins = 0;
         public int highScore = 0;
         public int currentDistrictIndex = 0;
+        public int highestDistrictUnlocked = 0;
         public string selectedCharacter = "Aman";
         public string selectedSkin = "Casual";
+        public List<string> unlockedCharacters = new List<string> { "Aman" };
         public bool isMusicOn = true;
         public bool isSFXOn = true;
+        public bool isVibrationOn = true;
         public string language = "English";
     }
 
     /// <summary>
-    /// Handles local JSON file persistence with error handling and data corruption protection.
+    /// Handles local JSON file persistence with error handling, data corruption protection,
+    /// and full support for all 38 districts and unlockable characters.
     /// </summary>
     public class SaveManager : MonoBehaviour
     {
@@ -60,6 +65,15 @@ namespace BiharSurfers.Core
                 {
                     string json = File.ReadAllText(saveFilePath);
                     data = JsonUtility.FromJson<SaveData>(json);
+
+                    if (data == null)
+                    {
+                        data = new SaveData();
+                    }
+                    if (data.unlockedCharacters == null || data.unlockedCharacters.Count == 0)
+                    {
+                        data.unlockedCharacters = new List<string> { "Aman" };
+                    }
                 }
                 else
                 {
@@ -79,6 +93,39 @@ namespace BiharSurfers.Core
         {
             data.coins += amount;
             SaveGame();
+        }
+
+        public bool IsCharacterUnlocked(string charId)
+        {
+            if (string.IsNullOrEmpty(charId)) return false;
+            if (charId == "Aman") return true;
+            return data.unlockedCharacters != null && data.unlockedCharacters.Contains(charId);
+        }
+
+        public void UnlockCharacter(string charId)
+        {
+            if (data.unlockedCharacters == null)
+                data.unlockedCharacters = new List<string>();
+
+            if (!data.unlockedCharacters.Contains(charId))
+            {
+                data.unlockedCharacters.Add(charId);
+                SaveGame();
+            }
+        }
+
+        public bool IsDistrictUnlocked(int index)
+        {
+            return index <= data.highestDistrictUnlocked;
+        }
+
+        public void UnlockDistrict(int index)
+        {
+            if (index > data.highestDistrictUnlocked)
+            {
+                data.highestDistrictUnlocked = index;
+                SaveGame();
+            }
         }
     }
 }
