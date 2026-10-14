@@ -1,0 +1,229 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace BiharSurfers.Environment
+{
+    /// <summary>
+    /// Master location progression manager handling transitions across 10 Bihar locations:
+    /// Patna Junction, Ara, Buxar, Sasaram Junction, Chhapra, Gaya, Muzaffarpur, Darbhanga, Madhubani, Bhagalpur.
+    /// Monitors player distance run and triggers location transitions.
+    /// </summary>
+    public class LocationManager : MonoBehaviour
+    {
+        public static LocationManager Instance { get; private set; }
+
+        [Header("Location Data Registry")]
+        public List<Data.LocationData> locationList = new List<Data.LocationData>();
+        public int currentLocationIndex = 0;
+
+        [Header("Progression Distance Interval")]
+        public float defaultIntervalMeters = 800f; // Transition every 800 meters
+
+        private void Awake()
+        {
+            if (Instance != null && Instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            Instance = this;
+
+            InitializeDefaultLocations();
+        }
+
+        private void InitializeDefaultLocations()
+        {
+            if (locationList.Count > 0) return;
+
+            // 1. Patna Junction (PNBE)
+            var loc1 = ScriptableObject.CreateInstance<Data.LocationData>();
+            loc1.locationId = 1;
+            loc1.districtName = "Patna";
+            loc1.stationName = "Patna Junction";
+            loc1.stationCode = "PNBE";
+            loc1.hindiName = "पटना जंक्शन";
+            loc1.englishName = "PATNA JUNCTION";
+            loc1.unlockDistance = 0f;
+            loc1.environmentTheme = "UrbanRailway";
+            loc1.fogColor = new Color(0.85f, 0.75f, 0.65f); // Warm sunrise fog
+            loc1.stationSignText = "PATNA JUNCTION - PNBE";
+            locationList.Add(loc1);
+
+            // 2. Ara (ARA)
+            var loc2 = ScriptableObject.CreateInstance<Data.LocationData>();
+            loc2.locationId = 2;
+            loc2.districtName = "Ara";
+            loc2.stationName = "Ara Junction";
+            loc2.stationCode = "ARA";
+            loc2.hindiName = "आरा जंक्शन";
+            loc2.englishName = "ARA JUNCTION";
+            loc2.unlockDistance = 800f;
+            loc2.environmentTheme = "TownStation";
+            loc2.fogColor = new Color(0.75f, 0.85f, 0.7f); // Town green tint
+            loc2.stationSignText = "ARA JUNCTION - ARA";
+            locationList.Add(loc2);
+
+            // 3. Buxar (BXR)
+            var loc3 = ScriptableObject.CreateInstance<Data.LocationData>();
+            loc3.locationId = 3;
+            loc3.districtName = "Buxar";
+            loc3.stationName = "Buxar";
+            loc3.stationCode = "BXR";
+            loc3.hindiName = "बक्सर";
+            loc3.englishName = "BUXAR";
+            loc3.unlockDistance = 1600f;
+            loc3.environmentTheme = "GangaRiver";
+            loc3.fogColor = new Color(0.6f, 0.8f, 0.95f); // River Ganga blue fog
+            loc3.stationSignText = "BUXAR - BXR";
+            locationList.Add(loc3);
+
+            // 4. Sasaram Junction (SSM)
+            var loc4 = ScriptableObject.CreateInstance<Data.LocationData>();
+            loc4.locationId = 4;
+            loc4.districtName = "Sasaram";
+            loc4.stationName = "Sasaram Junction";
+            loc4.stationCode = "SSM";
+            loc4.hindiName = "सासाराम जंक्शन";
+            loc4.englishName = "SASARAM JUNCTION";
+            loc4.unlockDistance = 2400f;
+            loc4.environmentTheme = "HistoricalFort";
+            loc4.fogColor = new Color(0.7f, 0.7f, 0.6f); // Historic stone fog
+            loc4.stationSignText = "SASARAM JUNCTION - SSM";
+            locationList.Add(loc4);
+
+            // 5. Chhapra Junction (CPR)
+            var loc5 = ScriptableObject.CreateInstance<Data.LocationData>();
+            loc5.locationId = 5;
+            loc5.districtName = "Chhapra";
+            loc5.stationName = "Chhapra Junction";
+            loc5.stationCode = "CPR";
+            loc5.hindiName = "छपरा जंक्शन";
+            loc5.englishName = "CHHAPRA JUNCTION";
+            loc5.unlockDistance = 3200f;
+            loc5.environmentTheme = "RailMarket";
+            loc5.fogColor = new Color(0.9f, 0.8f, 0.7f); // Market amber fog
+            loc5.stationSignText = "CHHAPRA JUNCTION - CPR";
+            locationList.Add(loc5);
+
+            // 6. Gaya Junction (GAYA)
+            var loc6 = ScriptableObject.CreateInstance<Data.LocationData>();
+            loc6.locationId = 6;
+            loc6.districtName = "Gaya";
+            loc6.stationName = "Gaya Junction";
+            loc6.stationCode = "GAYA";
+            loc6.hindiName = "गया जंक्शन";
+            loc6.englishName = "GAYA JUNCTION";
+            loc6.unlockDistance = 4000f;
+            loc6.environmentTheme = "SpiritualTemple";
+            loc6.fogColor = new Color(0.85f, 0.7f, 0.9f);
+            locationList.Add(loc6);
+
+            // 7. Muzaffarpur Junction (MFP)
+            var loc7 = ScriptableObject.CreateInstance<Data.LocationData>();
+            loc7.locationId = 7;
+            loc7.districtName = "Muzaffarpur";
+            loc7.stationName = "Muzaffarpur Junction";
+            loc7.stationCode = "MFP";
+            loc7.hindiName = "मुजफ्फरपुर जंक्शन";
+            loc7.englishName = "MUZAFFARPUR JUNCTION";
+            loc7.unlockDistance = 4800f;
+            loc7.environmentTheme = "LitchiBazaar";
+            loc7.fogColor = new Color(0.95f, 0.75f, 0.8f);
+            locationList.Add(loc7);
+
+            // 8. Darbhanga Junction (DBG)
+            var loc8 = ScriptableObject.CreateInstance<Data.LocationData>();
+            loc8.locationId = 8;
+            loc8.districtName = "Darbhanga";
+            loc8.stationName = "Darbhanga Junction";
+            loc8.stationCode = "DBG";
+            loc8.hindiName = "दरभंगा जंक्शन";
+            loc8.englishName = "DARBHANGA JUNCTION";
+            loc8.unlockDistance = 5600f;
+            loc8.environmentTheme = "MithilaPalace";
+            loc8.fogColor = new Color(0.8f, 0.85f, 0.95f);
+            locationList.Add(loc8);
+
+            // 9. Madhubani (MBI)
+            var loc9 = ScriptableObject.CreateInstance<Data.LocationData>();
+            loc9.locationId = 9;
+            loc9.districtName = "Madhubani";
+            loc9.stationName = "Madhubani";
+            loc9.stationCode = "MBI";
+            loc9.hindiName = "मधुबनी";
+            loc9.englishName = "MADHUBANI";
+            loc9.unlockDistance = 6400f;
+            loc9.environmentTheme = "MadhubaniArt";
+            loc9.fogColor = new Color(0.95f, 0.9f, 0.75f);
+            locationList.Add(loc9);
+
+            // 10. Bhagalpur Junction (BGP)
+            var loc10 = ScriptableObject.CreateInstance<Data.LocationData>();
+            loc10.locationId = 10;
+            loc10.districtName = "Bhagalpur";
+            loc10.stationName = "Bhagalpur Junction";
+            loc10.stationCode = "BGP";
+            loc10.hindiName = "भागलपुर जंक्शन";
+            loc10.englishName = "BHAGALPUR JUNCTION";
+            loc10.unlockDistance = 7200f;
+            loc10.environmentTheme = "SilkCity";
+            loc10.fogColor = new Color(0.85f, 0.95f, 0.85f);
+            locationList.Add(loc10);
+        }
+
+        private void Update()
+        {
+            if (Core.ScoreManager.Instance == null || Core.GameManager.Instance == null || Core.GameManager.Instance.currentState != Core.GameState.Playing)
+                return;
+
+            float currentDistance = Core.ScoreManager.Instance.currentDistance;
+
+            // Check if player has crossed threshold for next location
+            if (currentLocationIndex + 1 < locationList.Count)
+            {
+                var nextLoc = locationList[currentLocationIndex + 1];
+                if (currentDistance >= nextLoc.unlockDistance)
+                {
+                    currentLocationIndex++;
+                    ApplyLocationTransition(nextLoc);
+                }
+            }
+        }
+
+        public Data.LocationData GetCurrentLocation()
+        {
+            if (locationList.Count == 0) return null;
+            return locationList[Mathf.Clamp(currentLocationIndex, 0, locationList.Count - 1)];
+        }
+
+        public void ApplyLocationTransition(Data.LocationData location)
+        {
+            if (location == null) return;
+
+            // Trigger Transition Banner & Lighting
+            LocationTransition.Instance?.TriggerLocationTransition(location);
+
+            // Save current district index
+            if (Core.SaveManager.Instance != null)
+            {
+                Core.SaveManager.Instance.data.currentDistrictIndex = currentLocationIndex;
+                Core.SaveManager.Instance.SaveGame();
+            }
+
+            // Check location achievement
+            if (currentLocationIndex >= 4)
+            {
+                Core.AchievementManager.Instance?.Unlock("ach_explorer");
+            }
+        }
+
+        public void ResetLocationProgression()
+        {
+            currentLocationIndex = 0;
+            if (locationList.Count > 0)
+            {
+                ApplyLocationTransition(locationList[0]);
+            }
+        }
+    }
+}

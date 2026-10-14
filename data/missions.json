@@ -1,0 +1,10 @@
+[
+  { "id": "m1", "title": "First Train Run", "desc": "Run 500 meters in any district.", "target": 500, "type": "distance", "reward": 250 },
+  { "id": "m2", "title": "Rupee Collector", "desc": "Collect 100 golden Rupee coins.", "target": 100, "type": "coins", "reward": 500 },
+  { "id": "m3", "title": "High Jumper", "desc": "Perform 20 jumps over track obstacles.", "target": 20, "type": "jumps", "reward": 300 },
+  { "id": "m4", "title": "Sattu Power", "desc": "Use 3 power-ups during a single run.", "target": 3, "type": "powerups", "reward": 400 },
+  { "id": "m5", "title": "Long Distance Express", "desc": "Run 2,000 meters in a single run.", "target": 2000, "type": "distance", "reward": 1000 },
+  { "id": "m6", "title": "Bihar Explorer", "desc": "Unlock and play in 5 different districts.", "target": 5, "type": "districts", "reward": 1500 },
+  { "id": "m7", "title": "Train Dodger", "desc": "Dodge 15 moving passenger trains.", "target": 15, "type": "trains", "reward": 600 },
+  { "id": "m8", "title": "Rupee Millionaire", "desc": "Accumulate a total of 1,000 coins.", "target": 1000, "type": "coins", "reward": 2000 }
+]
